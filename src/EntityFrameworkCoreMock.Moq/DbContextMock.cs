@@ -39,6 +39,16 @@ namespace EntityFrameworkCoreMock
             where TEntity : class
             => CreateDbSetMock(dbSetSelector, _keyFactoryBuilder.BuildKeyFactory<TEntity>(), initialEntities);
 
+        public DbSetMock<TEntity> CreateDbSetMock<TEntity>(IEnumerable<TEntity> initialEntities)            
+            where TEntity : class
+        {
+            var entityPropertyName = typeof(TDbContext).GetProperties().First(x => x.PropertyType == typeof(DbSet<TEntity>)).Name;
+            var expParam = Expression.Parameter(typeof(TDbContext));
+            var expBody = Expression.Property(expParam, entityPropertyName);
+            var dbSetSelector = Expression.Lambda<Func<TDbContext, DbSet<TEntity>>>(expBody, expParam);
+            return CreateDbSetMock(dbSetSelector, _keyFactoryBuilder.BuildKeyFactory<TEntity>(), initialEntities);
+        }
+
         public DbSetMock<TEntity> CreateDbSetMock<TEntity>(Expression<Func<TDbContext, DbSet<TEntity>>> dbSetSelector, Func<TEntity, KeyContext, object> entityKeyFactory, IEnumerable<TEntity> initialEntities = null)
             where TEntity : class
         {

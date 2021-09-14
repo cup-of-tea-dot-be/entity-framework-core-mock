@@ -39,6 +39,15 @@ namespace EntityFrameworkCoreMock.NSubstitute
             where TEntity : class
             => CreateDbSetMock(dbSetSelector, _keyFactoryBuilder.BuildKeyFactory<TEntity>(), initialEntities);
 
+        public DbSetMock<TEntity> CreateDbSetMock<TEntity>(IEnumerable<TEntity> initialEntities)
+            where TEntity : class
+        {
+            var expParam = Expression.Parameter(typeof(TDbContext));
+            var expBody = Expression.PropertyOrField(expParam, typeof(TEntity).Name);
+            var exp = Expression.Lambda<Func<TDbContext, DbSet<TEntity>>>(expBody, expParam);
+            return CreateDbSetMock(exp, initialEntities);
+        }
+
         public DbSetMock<TEntity> CreateDbSetMock<TEntity>(
             Expression<Func<TDbContext, DbSet<TEntity>>> dbSetSelector,
             Func<TEntity, KeyContext, object> entityKeyFactory,

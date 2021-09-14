@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EntityFrameworkCoreMock.Moq.Tests.Enums;
 using EntityFrameworkCoreMock.Tests.Models;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
@@ -69,16 +70,25 @@ namespace EntityFrameworkCoreMock.Tests
             Assert.That(dbContextMock.Object.Users, Is.Not.Null);
         }
 
+        [TestCase(DbSetMockingType.WithSetSelector)]
+        [TestCase(DbSetMockingType.WithoutSetSelector)]        
         [Test]
-        public async Task DbContextMock_CreateDbSetMock_PassInitialEntities_DbSetShouldContainInitialEntities()
+        public async Task DbContextMock_CreateDbSetMock_PassInitialEntities_DbSetShouldContainInitialEntities(DbSetMockingType dbSetMockingType)
         {
             var dbContextMock = new DbContextMock<TestDbContext>(Options);
-            dbContextMock.CreateDbSetMock(x => x.Users, new[]
+            var users = new []
             {
                 new User { Id = Guid.NewGuid(), FullName = "Eric Cartoon" },
                 new User { Id = Guid.NewGuid(), FullName = "Billy Jewel" },
-            });
-
+            };
+            if (dbSetMockingType == DbSetMockingType.WithSetSelector)
+            {
+                dbContextMock.CreateDbSetMock(x => x.Users, users);
+            }            
+            else if (dbSetMockingType == DbSetMockingType.WithoutSetSelector)
+            {
+                dbContextMock.CreateDbSetMock(users);
+            }
             Assert.That(dbContextMock.Object.Users.Count(), Is.EqualTo(2));
             Assert.That(await dbContextMock.Object.Users.CountAsync(), Is.EqualTo(2));
 
@@ -144,15 +154,26 @@ namespace EntityFrameworkCoreMock.Tests
             Assert.Throws<DbUpdateConcurrencyException>(() => dbContextMock.Object.SaveChanges());
         }
 
+        [TestCase(DbSetMockingType.WithSetSelector)]
+        [TestCase(DbSetMockingType.WithoutSetSelector)]
         [Test]
-        public void DbContextMock_CreateDbSetMock_AddMultipleModelsWithDatabaseGeneratedIdentityKey_ShouldGenerateSequentialKey()
+        public void DbContextMock_CreateDbSetMock_AddMultipleModelsWithDatabaseGeneratedIdentityKey_ShouldGenerateSequentialKey(DbSetMockingType dbSetMockingType)
         {
             var dbContextMock = new DbContextMock<TestDbContext>(Options);
-            var dbSetMock = dbContextMock.CreateDbSetMock(x => x.GeneratedKeyModels, new[]
+            var generatedKeyModels = new[]
             {
                 new GeneratedKeyModel {Value = "first"},
                 new GeneratedKeyModel {Value = "second"}
-            });
+            };
+            DbSetMock<GeneratedKeyModel> dbSetMock = null;
+            if (dbSetMockingType == DbSetMockingType.WithSetSelector)
+            {
+                dbSetMock = dbContextMock.CreateDbSetMock(x => x.GeneratedKeyModels, generatedKeyModels);
+            }
+            else if (dbSetMockingType == DbSetMockingType.WithoutSetSelector)
+            {
+                dbSetMock = dbContextMock.CreateDbSetMock(generatedKeyModels);
+            }
             dbSetMock.Object.Add(new GeneratedKeyModel {Value = "third" });
             dbContextMock.Object.SaveChanges();
 
@@ -163,16 +184,27 @@ namespace EntityFrameworkCoreMock.Tests
             Assert.That(dbSetMock.Object.First(x => x.Id == 3).Value, Is.EqualTo("third"));
         }
 
+        [TestCase(DbSetMockingType.WithSetSelector)]
+        [TestCase(DbSetMockingType.WithoutSetSelector)]
         [Test]
-        public void DbContextMock_CreateDbSetMock_AddMultipleModelsWithGuidAsDatabaseGeneratedIdentityKey_ShouldGenerateRandomGuidAsKey()
+        public void DbContextMock_CreateDbSetMock_AddMultipleModelsWithGuidAsDatabaseGeneratedIdentityKey_ShouldGenerateRandomGuidAsKey(DbSetMockingType dbSetMockingType)
         {
             var knownId = Guid.NewGuid();
             var dbContextMock = new DbContextMock<TestDbContext>(Options);
-            var dbSetMock = dbContextMock.CreateDbSetMock(x => x.GeneratedGuidKeyModels, new[]
+            var generatedGuidKeyModels = new[]
             {
                 new GeneratedGuidKeyModel {Id = knownId, Value = "first"},
                 new GeneratedGuidKeyModel {Value = "second"}
-            });
+            };
+            DbSetMock<GeneratedGuidKeyModel> dbSetMock = null;
+            if (dbSetMockingType == DbSetMockingType.WithSetSelector)
+            {
+                dbSetMock = dbContextMock.CreateDbSetMock(x => x.GeneratedGuidKeyModels, generatedGuidKeyModels);
+            }
+            else if (dbSetMockingType == DbSetMockingType.WithoutSetSelector)
+            {
+                dbSetMock = dbContextMock.CreateDbSetMock(generatedGuidKeyModels);
+            }
             dbSetMock.Object.Add(new GeneratedGuidKeyModel { Value = "third" });
             dbContextMock.Object.SaveChanges();
 
