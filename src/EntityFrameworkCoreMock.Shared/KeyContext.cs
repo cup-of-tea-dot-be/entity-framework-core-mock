@@ -11,5 +11,11 @@ namespace EntityFrameworkCoreMock
         private long _nextIdentity = 1;
 
         public long NextIdentity => _nextIdentity++;
+
+        public long CurrentIdentity
+        {
+            get => _nextIdentity;
+            set => _nextIdentity = value + 1;
+        }
     }
 }

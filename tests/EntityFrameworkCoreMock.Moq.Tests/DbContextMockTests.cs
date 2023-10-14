@@ -165,6 +165,25 @@ namespace EntityFrameworkCoreMock.Tests
             Assert.That(dbSetMock.Object.First(x => x.Id == 2).Value, Is.EqualTo("second"));
             Assert.That(dbSetMock.Object.First(x => x.Id == 3).Value, Is.EqualTo("third"));
         }
+        
+        [Test]
+        public void DbContextMock_CreateDbSetMock_AddWithDatabaseGeneratedIdentityKeyWithIdsOnInitialEntities_ShouldGenerateSequentialKey()
+        {
+            var dbContextMock = new DbContextMock<TestDbContext>(Options);
+            var dbSetMock = dbContextMock.CreateDbSetMock(x => x.GeneratedKeyModels, new[]
+            {
+                new GeneratedKeyModel {Id = 1, Value = "first"},
+                new GeneratedKeyModel {Id = 2, Value = "second"}
+            });
+            dbSetMock.Object.Add(new GeneratedKeyModel { Value = "third" });
+            dbContextMock.Object.SaveChanges();
+
+            Assert.That(dbSetMock.Object.Min(x => x.Id), Is.EqualTo(1));
+            Assert.That(dbSetMock.Object.Max(x => x.Id), Is.EqualTo(3));
+            Assert.That(dbSetMock.Object.First(x => x.Id == 1).Value, Is.EqualTo("first"));
+            Assert.That(dbSetMock.Object.First(x => x.Id == 2).Value, Is.EqualTo("second"));
+            Assert.That(dbSetMock.Object.First(x => x.Id == 3).Value, Is.EqualTo("third"));
+        }
 
         [Test]
         public void DbContextMock_CreateDbSetMock_AddMultipleModelsWithGuidAsDatabaseGeneratedIdentityKey_ShouldGenerateRandomGuidAsKey()
