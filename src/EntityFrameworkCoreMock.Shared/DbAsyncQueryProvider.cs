@@ -69,10 +69,35 @@ namespace EntityFrameworkCoreMock
 
         private static T CompileExpressionItem<T>(Expression expression)
             => Expression.Lambda<Func<T>>(
-                body: new Visitor().Visit(expression) ?? throw new InvalidOperationException("Visitor returns null"),
-                parameters: (IEnumerable<ParameterExpression>) null)
-            .Compile()();
+                    body: new Visitor().Visit(expression) ?? throw new InvalidOperationException("Visitor returns null"),
+                    parameters: (IEnumerable<ParameterExpression>) null)
+                .Compile()();
 
-        private class Visitor : ExpressionVisitor { }
+        private class Visitor : ExpressionVisitor
+        {
+            protected override Expression VisitMethodCall(MethodCallExpression node)
+            {
+                var method = node.Method;
+                if (method.DeclaringType?.FullName == "Microsoft.EntityFrameworkCore.RelationalQueryableExtensions")
+                {
+                    var fakeMethod = GetType().GetMethod(method.Name);
+                    if (fakeMethod != null)
+                    {
+                        var obj = Visit(node.Object);
+                        var args = Visit(node.Arguments);
+                        return Expression.Call(obj, fakeMethod.MakeGenericMethod(method.GetGenericArguments()), args);
+                    }
+                }
+                return base.VisitMethodCall(node);
+            }
+
+            // ReSharper disable once UnusedMember.Local
+            public static int ExecuteDelete<TSource>(IQueryable<TSource> source) =>
+                source.Count();
+            
+            // ReSharper disable once UnusedMember.Local
+            public static int ExecuteUpdate<TSource>(IQueryable<TSource> source) =>
+                source.Count();
+        }
     }
 }
